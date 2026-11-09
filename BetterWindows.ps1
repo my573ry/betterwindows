@@ -244,7 +244,8 @@ function Invoke-Selected {
     )
     $selected = @()
     for ($i = 0; $i -lt $List.Items.Count; $i++) {
-        if ($List.GetItemChecked($i)) { $selected += $List.Items[$i] }
+        $item = $List.Items[$i].ToString()
+        if ($List.GetItemChecked($i) -and -not $item.StartsWith("---")) { $selected += $item }
     }
     if ($selected.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show("Please select at least one item.", "Nothing Selected") | Out-Null
@@ -318,6 +319,7 @@ $maintList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $maintList.BorderStyle = "None"
 $maintList.ItemHeight = 32
 $maintItems = @(
+    '--- RECOMMENDED ---',
     'System File Checker (SFC /scannow)',
     'DISM Image Repair (RestoreHealth)',
     'Windows Component Store Cleanup',
@@ -373,14 +375,16 @@ $cleanList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $cleanList.BorderStyle = "None"
 $cleanList.ItemHeight = 32
 $cleanItems = @(
+    '--- RECOMMENDED ---',
     'Clean Temporary Files',
     'Empty Recycle Bin',
+    'Clear Windows Update Download Cache',
+    'Flush DNS Cache',
+    '--- OTHER ---',
     'Clear Thumbnail Cache',
     'Clear Prefetch Cache',
-    'Clear Windows Update Download Cache',
     'Run Disk Cleanup Utility',
-    'Clear Delivery Optimization Cache',
-    'Flush DNS Cache'
+    'Clear Delivery Optimization Cache'
 )
 $cleanItems | ForEach-Object { [void]$cleanList.Items.Add($_) }
 $tabClean.Controls.Add($cleanList)
@@ -442,17 +446,19 @@ $stdList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $stdList.BorderStyle = "None"
 $stdList.ItemHeight = 32
 $stdItems = @(
-    'Disable Activity History',
-    'Disable Consumer Features',
-    'Disable Delivery Optimization',
-    'Disable Fast Startup',
-    'Disable GameDVR',
-    'Disable Location Tracking',
-    'Disable Startup Delay',
+    '--- RECOMMENDED ---',
     'Disable Telemetry',
+    'Disable GameDVR',
+    'Disable Fast Startup',
+    'Disable Consumer Features',
     'Disable Windows Tips and Suggestions',
-    'Disable WPBT',
+    'Disable Delivery Optimization',
     'Enable End Task on Taskbar',
+    'Disable Startup Delay',
+    '--- OTHER ---',
+    'Disable Activity History',
+    'Disable Location Tracking',
+    'Disable WPBT',
     'Remove Temporary Files',
     'Set Services to Manual'
 )
@@ -571,21 +577,23 @@ $advList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $advList.BorderStyle = "None"
 $advList.ItemHeight = 32
 $advItems = @(
+    '--- RECOMMENDED ---',
+    'Disable and Remove Windows AI',
+    'Disable News and Interests / Widgets',
+    'Restore Classic Right-Click Menu',
+    'Disable Background Apps',
+    '--- OTHER ---',
     'Block Logitech Download Assistant',
     'Debloat Brave Browser',
     'Debloat Microsoft Edge',
-    'Disable and Remove Windows AI',
-    'Disable Background Apps',
     'Disable File Explorer Home and Gallery',
     'Disable Hibernation',
-    'Disable News and Interests / Widgets',
     'Disable Razer Software Auto-Install',
     'Disable Storage Sense',
     'Disable System Tray Notifications and Calendar',
     'Enable Hibernation',
     'Remove Microsoft Edge',
     'Remove Microsoft OneDrive',
-    'Restore Classic Right-Click Menu',
     'Set Visual Effects to Best Performance'
 )
 $advItems | ForEach-Object { [void]$advList.Items.Add($_) }
@@ -865,7 +873,9 @@ $powerList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $powerList.BorderStyle = "None"
 $powerList.ItemHeight = 32
 $powerItems = @(
+    '--- RECOMMENDED ---',
     'Import and Enable Atlas Power Scheme',
+    '--- OTHER ---',
     'Remove Atlas Power Scheme'
 )
 $powerItems | ForEach-Object { [void]$powerList.Items.Add($_) }
@@ -945,6 +955,24 @@ $powerActions = @{
     }
 }
 $btnPower.Add_Click({ Invoke-Selected $powerList $powerActions })
+
+# Prevent header items from being checked
+function Protect-Headers {
+    param([System.Windows.Forms.CheckedListBox]$List)
+    $List.Add_ItemCheck({
+        param($sender, $e)
+        $item = $sender.Items[$e.Index].ToString()
+        if ($item.StartsWith("---")) {
+            $e.NewValue = $e.CurrentValue
+        }
+    })
+}
+
+Protect-Headers $maintList
+Protect-Headers $cleanList
+Protect-Headers $stdList
+Protect-Headers $advList
+Protect-Headers $powerList
 
 # Launch - Ask about System Restore Point first
 $restoreMsg = "Would you like to create a System Restore Point before making any changes?`n`nThis is recommended and takes a few moments."
