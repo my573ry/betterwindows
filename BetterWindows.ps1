@@ -68,19 +68,17 @@ function Write-Log {
     $logBox.SelectionStart = $logBox.Text.Length
     $logBox.ScrollToCaret()
 
-    # Console output
+    # Console output (skip progress lines â€” they only update the GUI log)
     try {
-        $hostColor = switch ($Color) {
-            "Green"  { "Green" }
-            "Yellow" { "Yellow" }
-            "Red"    { "Red" }
-            "Cyan"   { "Cyan" }
-            "White"  { "White" }
-            default  { "Gray" }
-        }
-        if ($IsProgress) {
-            Write-Host ("`r" + $full.PadRight(80)) -ForegroundColor $hostColor -NoNewline
-        } else {
+        if (-not $IsProgress) {
+            $hostColor = switch ($Color) {
+                "Green"  { "Green" }
+                "Yellow" { "Yellow" }
+                "Red"    { "Red" }
+                "Cyan"   { "Cyan" }
+                "White"  { "White" }
+                default  { "Gray" }
+            }
             if ($script:lastProgressLine) { Write-Host "" }
             Write-Host $full -ForegroundColor $hostColor
         }
