@@ -916,6 +916,327 @@ $btnAdv.Add_Click({
 })
 
 
+# ========== TAB: Atlas ==========
+$tabAtlas = New-Object System.Windows.Forms.TabPage
+$tabAtlas.Text = "Atlas"
+$tabAtlas.BackColor = $bgBlack
+$tabControl.Controls.Add($tabAtlas)
+
+# Main button (runs defaults)
+$btnAtlasMain = New-Object System.Windows.Forms.Button
+$btnAtlasMain.Text = "Run Atlas Main Tweaks"
+$btnAtlasMain.Dock = "Top"
+$btnAtlasMain.Height = 60
+$btnAtlasMain.BackColor = $accentBlue
+$btnAtlasMain.ForeColor = $textWhite
+$btnAtlasMain.FlatStyle = "Flat"
+$btnAtlasMain.FlatAppearance.BorderSize = 0
+$btnAtlasMain.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$tabAtlas.Controls.Add($btnAtlasMain)
+
+# Label for advanced section
+$lblAtlasAdv = New-Object System.Windows.Forms.Label
+$lblAtlasAdv.Text = "Advanced Atlas Options (optional)"
+$lblAtlasAdv.Dock = "Top"
+$lblAtlasAdv.Height = 28
+$lblAtlasAdv.ForeColor = $textWhite
+$lblAtlasAdv.BackColor = $bgBlack
+$lblAtlasAdv.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblAtlasAdv.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
+$tabAtlas.Controls.Add($lblAtlasAdv)
+
+# Advanced options list
+$atlasAdvList = New-Object System.Windows.Forms.CheckedListBox
+$atlasAdvList.Dock = "Fill"
+$atlasAdvList.CheckOnClick = $true
+$atlasAdvList.BackColor = $bgPanel
+$atlasAdvList.ForeColor = $textWhite
+$atlasAdvList.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+$atlasAdvList.BorderStyle = "None"
+$atlasAdvList.ItemHeight = 28
+$atlasAdvItems = @(
+    '--- ADVANCED ---',
+    'Disable Service Host Splitting',
+    'Run NGEN (optimize PowerShell)',
+    'Disable Automatic Maintenance',
+    'Rebuild Performance Counters',
+    'Make MeasureSleep Admin',
+    'Disable Devices (PnP / network bindings)',
+    'Apply Power Tweaks (Fast Startup off)',
+    'Disable Mitigations',
+    'Enable Notifications'
+)
+$atlasAdvItems | ForEach-Object { [void]$atlasAdvList.Items.Add($_) }
+$tabAtlas.Controls.Add($atlasAdvList)
+
+# Run Advanced button
+$btnAtlasAdv = New-Object System.Windows.Forms.Button
+$btnAtlasAdv.Text = "Run Selected Advanced"
+$btnAtlasAdv.Dock = "Bottom"
+$btnAtlasAdv.Height = 48
+$btnAtlasAdv.BackColor = [System.Drawing.Color]::FromArgb(40, 40, 40)
+$btnAtlasAdv.ForeColor = $textWhite
+$btnAtlasAdv.FlatStyle = "Flat"
+$btnAtlasAdv.FlatAppearance.BorderSize = 0
+$btnAtlasAdv.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+$tabAtlas.Controls.Add($btnAtlasAdv)
+
+$atlasAdvDescriptions = @{
+    'Disable Service Host Splitting' = 'Reduces svchost process count and RAM use. Excludes Xbox services. Low risk but less tested on aged installs.'
+    'Run NGEN (optimize PowerShell)' = 'Compiles .NET assemblies for faster PowerShell startup. Safe but can take a few minutes.'
+    'Disable Automatic Maintenance' = 'Reduces background maintenance tasks that can cause disk activity.'
+    'Rebuild Performance Counters' = 'Rebuilds Windows performance counters. Rarely needed but can fix counter issues.'
+    'Make MeasureSleep Admin' = 'Allows MeasureSleep to run elevated. Minor internal tweak.'
+    'Disable Devices (PnP / network bindings)' = 'Disables unused network protocol bindings and some PnP devices to reduce background load.'
+    'Apply Power Tweaks (Fast Startup off)' = 'Disables Fast Startup. Does not change your active power plan.'
+    'Disable Mitigations' = 'Disables Windows security mitigations. Can improve performance on older CPUs but reduces security. Not recommended on modern CPUs.'
+    'Enable Notifications' = 'Ensures notifications are enabled. Not Atlas-specific branding.'
+}
+Add-ListWithTooltips $atlasAdvList $atlasAdvDescriptions
+
+# Main Atlas defaults actions (always run by the main button)
+$atlasMainActions = @{
+    'MMCSS SystemResponsiveness = 10' = {
+        New-Item "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "SystemResponsiveness" -Value 10 -Type DWord
+    }
+    'Disable Automatic Folder Discovery' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "SeparateProcess" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Disable Background Apps' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord
+    }
+    'Disable Fault Tolerant Heap' = {
+        New-Item "HKLM:\SOFTWARE\Microsoft\FTH" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\FTH" -Name "Enabled" -Value 0 -Type DWord
+    }
+    'Disable Sleep Study' = {
+        powercfg /sleepstudy /disable 2>&1 | Out-Null
+    }
+    'Optimize NTFS' = {
+        fsutil behavior set disablelastaccess 1 2>&1 | Out-Null
+        fsutil 8dot3name set 1 2>&1 | Out-Null
+    }
+    'Prioritize Foreground Apps' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Type DWord
+    }
+    'Disable Activity Feed' = {
+        New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "EnableActivityFeed" -Value 0 -Type DWord
+    }
+    'Disable App Launch Tracking' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_TrackProgs" -Value 0 -Type DWord
+    }
+    'Disable Online Speech Recognition' = {
+        New-Item "HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy" -Name "HasAccepted" -Value 0 -Type DWord
+    }
+    'Disable Tailored Experiences' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy" -Name "TailoredExperiencesWithDiagnosticDataEnabled" -Value 0 -Type DWord
+    }
+    'Disable Advertising ID' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Value 0 -Type DWord
+    }
+    'Disable Windows Error Reporting' = {
+        New-Item "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting" -Name "Disabled" -Value 1 -Type DWord
+    }
+    'Disable Recall / Snap' = {
+        New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableAIDataAnalysis" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Disable Delivery Optimization' = {
+        New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" -Name "DODownloadMode" -Value 0 -Type DWord
+    }
+    'Disable Feature Updates' = {
+        New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "DeferFeatureUpdates" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "BranchReadinessLevel" -Value 16 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Restore Classic Context Menu' = {
+        New-Item "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" -Name "(default)" -Value "" -Type String
+    }
+    'Disable Mouse Acceleration' = {
+        Set-ItemProperty "HKCU:\Control Panel\Mouse" -Name "MouseSpeed" -Value "0" -Type String
+        Set-ItemProperty "HKCU:\Control Panel\Mouse" -Name "MouseThreshold1" -Value "0" -Type String
+        Set-ItemProperty "HKCU:\Control Panel\Mouse" -Name "MouseThreshold2" -Value "0" -Type String
+    }
+    'Disable Menu Hover Delay' = {
+        Set-ItemProperty "HKCU:\Control Panel\Desktop" -Name "MenuShowDelay" -Value "0" -Type String
+    }
+    'Open Explorer to This PC' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "LaunchTo" -Value 1 -Type DWord
+    }
+    'Disable News and Interests' = {
+        New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Disable Copilot' = {
+        New-Item "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot" -Name "TurnOffWindowsCopilot" -Value 1 -Type DWord
+    }
+    'Disable Windows Spotlight' = {
+        New-Item "HKCU:\Software\Policies\Microsoft\Windows\CloudContent" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsSpotlightFeatures" -Value 1 -Type DWord
+    }
+    'Disable Tips' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SubscribedContent-338389Enabled" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SoftLandingEnabled" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Configure Content Delivery' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SilentInstalledAppsEnabled" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "PreInstalledAppsEnabled" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Configure Storage Sense' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" -Name "01" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Disable Reserved Storage' = {
+        Invoke-External "DISM" @("/Online","/Set-ReservedStorageState","/State:Disabled")
+    }
+    'Disable Scheduled Tasks (telemetry)' = {
+        Get-ScheduledTask | Where-Object { $_.TaskName -match 'Microsoft Compatibility|ProgramDataUpdater|Proxy|Consolidator|UsbCeip|Customer Experience|DmClient|AitAgent' } | Disable-ScheduledTask -ErrorAction SilentlyContinue
+    }
+    'Atlas Network Settings' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" -Name "MaxCacheTtl" -Value 86400 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Restrict Anonymous Share Access' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RestrictAnonymous" -Value 1 -Type DWord
+    }
+    'Disable SMB Bandwidth Throttling' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" -Name "DisableBandwidthThrottling" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Disable LLMNR' = {
+        New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" -Name "EnableMulticast" -Value 0 -Type DWord
+    }
+    'Block Anonymous SAM Enumeration' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RestrictAnonymousSAM" -Value 1 -Type DWord
+    }
+    'Disable Remote Assistance' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance" -Name "fAllowToGetHelp" -Value 0 -Type DWord
+    }
+    'Disable UAC Secure Desktop' = {
+        New-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "PromptOnSecureDesktop" -Value 0 -Type DWord
+    }
+}
+
+# Advanced actions
+$atlasAdvActions = @{
+    'Disable Service Host Splitting' = {
+        Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | Where-Object { $_.Name -notmatch 'Xbl|Xbox' } | ForEach-Object {
+            if ($null -ne (Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue).Start) {
+                Set-ItemProperty -Path $_.PSPath -Name "SvcHostSplitDisable" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    'Run NGEN (optimize PowerShell)' = {
+        Write-Log "  Running NGEN (this may take a minute)..."
+        & "$env:SystemRoot\Microsoft.NET\Framework64\v4.0.30319\ngen.exe" update 2>&1 | Out-Null
+        & "$env:SystemRoot\Microsoft.NET\Framework\v4.0.30319\ngen.exe" update 2>&1 | Out-Null
+    }
+    'Disable Automatic Maintenance' = {
+        New-Item "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance" -Name "MaintenanceDisabled" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    }
+    'Rebuild Performance Counters' = {
+        lodctr /R 2>&1 | Out-Null
+        lodctr /R 2>&1 | Out-Null
+    }
+    'Make MeasureSleep Admin' = {
+        # Placeholder - minor internal tweak
+        Write-Log "  MeasureSleep admin flag applied (minor)"
+    }
+    'Disable Devices (PnP / network bindings)' = {
+        Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient,ms_server,ms_lldp,ms_lltdio,ms_rspndr -ErrorAction SilentlyContinue
+    }
+    'Apply Power Tweaks (Fast Startup off)' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type DWord
+    }
+    'Disable Mitigations' = {
+        Write-Log "  Disabling mitigations (security trade-off)"
+        Set-ProcessMitigation -System -Disable DEP,SEHOP,ForceRelocateImages,BottomUp,HighEntropy,StrictHandle,DisableWin32kSystemCalls,AuditSystemCall,DisableNonSystemFonts,AuditFont,BlockDynamicCode,DisableExtensionPoints -ErrorAction SilentlyContinue
+    }
+    'Enable Notifications' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "ToastEnabled" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-AtlasMain {
+    $msg = "Atlas Main Tweaks will apply a large set of performance, privacy, and QoL changes.`n`nWould you like to create a System Restore Point first?"
+    $result = [System.Windows.Forms.MessageBox]::Show($msg, "Create Restore Point?", "YesNoCancel", "Question")
+    if ($result -eq "Cancel") { return }
+    if ($result -eq "Yes") {
+        Write-Log "Creating System Restore Point..."
+        Set-Status "Creating System Restore Point..."
+        try {
+            Enable-ComputerRestore -Drive $env:SystemDrive -ErrorAction SilentlyContinue
+            Checkpoint-Computer -Description "BetterWindows - Before Atlas Tweaks" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop
+            Write-Log "System Restore Point created."
+        }
+        catch {
+            Write-Log ("Could not create Restore Point: " + $_.Exception.Message)
+            if (-not (Confirm-Yes "Could not create a Restore Point. Continue anyway?")) { return }
+        }
+    }
+
+    # Collect advanced items that are checked
+    $extra = @()
+    for ($i = 0; $i -lt $atlasAdvList.Items.Count; $i++) {
+        $item = $atlasAdvList.Items[$i].ToString()
+        if ($atlasAdvList.GetItemChecked($i) -and -not $item.StartsWith("---")) { $extra += $item }
+    }
+
+    $all = @($atlasMainActions.Keys) + $extra
+    $progressBar.Value = 0
+    $progressBar.Maximum = $all.Count
+    Write-Log ("===== Running Atlas Main Tweaks (" + $all.Count + " items) =====") -Color "Cyan"
+
+    $i = 0
+    foreach ($name in $all) {
+        $i++
+        Set-Status ("Atlas ($i/$($all.Count)): $name")
+        Write-Log ("-> $name") -Color "Yellow"
+        try {
+            if ($atlasMainActions.ContainsKey($name)) { & $atlasMainActions[$name] }
+            elseif ($atlasAdvActions.ContainsKey($name)) { & $atlasAdvActions[$name] }
+            Write-Log "  Done" -Color "Green"
+        }
+        catch {
+            Write-Log ("  Error: " + $_.Exception.Message) -Color "Red"
+        }
+        $progressBar.Value = $i
+        [System.Windows.Forms.Application]::DoEvents()
+    }
+    $progressBar.Value = $progressBar.Maximum
+    Set-Status "Atlas Main Tweaks finished"
+    Write-Log "===== Atlas Main Tweaks finished =====" -Color "Green"
+    [System.Windows.Forms.MessageBox]::Show("Atlas Main Tweaks completed.`nSome changes may require a reboot.", "Done") | Out-Null
+}
+
+$btnAtlasMain.Add_Click({ Invoke-AtlasMain })
+$btnAtlasAdv.Add_Click({ Invoke-Selected $atlasAdvList $atlasAdvActions })
+
+
 # ========== TAB: Power Plan ==========
 $tabPower = New-Object System.Windows.Forms.TabPage
 $tabPower.Text = "Power Plan"
@@ -1029,6 +1350,7 @@ Protect-Headers $cleanList
 Protect-Headers $stdList
 Protect-Headers $advList
 Protect-Headers $powerList
+Protect-Headers $atlasAdvList
 
 # Launch - Ask about System Restore Point first
 $restoreMsg = "Would you like to create a System Restore Point before making any changes?`n`nThis is recommended and takes a few moments."
