@@ -377,7 +377,6 @@ $maintList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $maintList.BorderStyle = "None"
 $maintList.ItemHeight = 32
 $maintItems = @(
-    '--- RECOMMENDED ---',
     'System File Checker (SFC /scannow)',
     'DISM Image Repair (RestoreHealth)',
     'Windows Component Store Cleanup',
@@ -433,12 +432,10 @@ $cleanList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $cleanList.BorderStyle = "None"
 $cleanList.ItemHeight = 32
 $cleanItems = @(
-    '--- RECOMMENDED ---',
     'Clean Temporary Files',
     'Empty Recycle Bin',
     'Clear Windows Update Download Cache',
     'Flush DNS Cache',
-    '--- OTHER ---',
     'Clear Thumbnail Cache',
     'Clear Prefetch Cache',
     'Run Disk Cleanup Utility',
@@ -504,7 +501,6 @@ $stdList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $stdList.BorderStyle = "None"
 $stdList.ItemHeight = 32
 $stdItems = @(
-    '--- RECOMMENDED ---',
     'Disable Telemetry',
     'Disable GameDVR',
     'Disable Fast Startup',
@@ -513,7 +509,6 @@ $stdItems = @(
     'Disable Delivery Optimization',
     'Enable End Task on Taskbar',
     'Disable Startup Delay',
-    '--- OTHER ---',
     'Disable Activity History',
     'Disable Location Tracking',
     'Disable WPBT',
@@ -635,12 +630,10 @@ $advList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $advList.BorderStyle = "None"
 $advList.ItemHeight = 32
 $advItems = @(
-    '--- RECOMMENDED ---',
     'Disable and Remove Windows AI',
     'Disable News and Interests / Widgets',
     'Restore Classic Right-Click Menu',
     'Disable Background Apps',
-    '--- OTHER ---',
     'Block Logitech Download Assistant',
     'Debloat Brave Browser',
     'Debloat Microsoft Edge',
@@ -953,7 +946,6 @@ $atlasAdvList.Font = New-Object System.Drawing.Font("Segoe UI", 11)
 $atlasAdvList.BorderStyle = "None"
 $atlasAdvList.ItemHeight = 28
 $atlasAdvItems = @(
-    '--- ADVANCED ---',
     'Disable Service Host Splitting',
     'Run NGEN (optimize PowerShell)',
     'Disable Automatic Maintenance',
@@ -1335,36 +1327,9 @@ $powerActions = @{
 }
 $btnPower.Add_Click({ Invoke-Selected $powerList $powerActions })
 
-# Style headers as bold labels with no checkbox
+# Prevent header items from being checked (dividers removed from lists)
 function Protect-Headers {
     param([System.Windows.Forms.CheckedListBox]$List)
-    $List.DrawMode = [System.Windows.Forms.DrawMode]::OwnerDrawFixed
-    $List.ItemHeight = 32
-
-    $List.Add_DrawItem({
-        param($sender, $e)
-        if ($e.Index -lt 0) { return }
-        $item = $sender.Items[$e.Index].ToString()
-        $isHeader = $item.StartsWith("---")
-
-        $e.Graphics.FillRectangle((New-Object System.Drawing.SolidBrush($sender.BackColor)), $e.Bounds)
-
-        if ($isHeader) {
-            $text = $item -replace '---\s*', '' -replace '\s*---', ''
-            $font = New-Object System.Drawing.Font($sender.Font.FontFamily, $sender.Font.Size, [System.Drawing.FontStyle]::Bold)
-            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
-            $e.Graphics.DrawString($text, $font, $brush, ($e.Bounds.X + 8), ($e.Bounds.Y + 6))
-            $font.Dispose(); $brush.Dispose()
-        } else {
-            $checked = $sender.GetItemChecked($e.Index)
-            $checkRect = New-Object System.Drawing.Rectangle(($e.Bounds.X + 4), ($e.Bounds.Y + 6), 18, 18)
-            [System.Windows.Forms.ControlPaint]::DrawCheckBox($e.Graphics, $checkRect, $(if ($checked) { [System.Windows.Forms.ButtonState]::Checked } else { [System.Windows.Forms.ButtonState]::Normal }))
-            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
-            $e.Graphics.DrawString($item, $sender.Font, $brush, ($e.Bounds.X + 28), ($e.Bounds.Y + 6))
-            $brush.Dispose()
-        }
-    })
-
     $List.Add_ItemCheck({
         param($sender, $e)
         $item = $sender.Items[$e.Index].ToString()
