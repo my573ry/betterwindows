@@ -32,16 +32,33 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # ---------- Helpers ----------
+$script:lastProgressLine = $false
+
 function Write-Log {
     param(
         [string]$Message,
-        [string]$Color = "Gray"
+        [string]$Color = "Gray",
+        [switch]$IsProgress
     )
     $ts = Get-Date -Format "HH:mm:ss"
-    $logBox.AppendText("[$ts] $Message`r`n")
+    $full = "[$ts] $Message"
+
+    if ($IsProgress -and $script:lastProgressLine) {
+        # Overwrite the last progress line in the log box
+        $text = $logBox.Text
+        $lastNl = $text.LastIndexOf("`n")
+        if ($lastNl -ge 0) {
+            $logBox.Text = $text.Substring(0, $lastNl + 1) + $full + "`r`n"
+        } else {
+            $logBox.Text = $full + "`r`n"
+        }
+    } else {
+        $logBox.AppendText("$full`r`n")
+    }
     $logBox.SelectionStart = $logBox.Text.Length
     $logBox.ScrollToCaret()
-    # Also write to the PowerShell console (like Chris Titus Tech)
+
+    # Console output
     try {
         $hostColor = switch ($Color) {
             "Green"  { "Green" }
@@ -51,8 +68,14 @@ function Write-Log {
             "White"  { "White" }
             default  { "Gray" }
         }
-        Write-Host ("[$ts] $Message") -ForegroundColor $hostColor
+        if ($IsProgress) {
+            Write-Host ("`r" + $full.PadRight(80)) -ForegroundColor $hostColor -NoNewline
+        } else {
+            if ($script:lastProgressLine) { Write-Host "" }
+            Write-Host $full -ForegroundColor $hostColor
+        }
     } catch {}
+    $script:lastProgressLine = $IsProgress
     [System.Windows.Forms.Application]::DoEvents()
 }
 
@@ -84,23 +107,52 @@ function Invoke-External {
     $proc.StartInfo = $psi
     [void]$proc.Start()
 
+    $lastProgress = ""
     while (-not $proc.HasExited) {
         while (-not $proc.StandardOutput.EndOfStream) {
             $line = $proc.StandardOutput.ReadLine()
-            if ($line) { Write-Log ("    " + $line.Trim()) }
+            if (-not $line) { continue }
+            $trimmed = $line.Trim()
+            if (-not $trimmed) { continue }
+
+            # Detect progress-style lines (percentage or bar)
+            $isProgress = ($trimmed -match '\d+(\.\d+)?\s*%' -or $trimmed -match '\[=+[\s=]*\]')
+            if ($isProgress) {
+                # Only update if the percentage actually changed
+                if ($trimmed -ne $lastProgress) {
+                    Write-Log ("    " + $trimmed) -IsProgress
+                    $lastProgress = $trimmed
+                }
+            } else {
+                if ($script:lastProgressLine) { Write-Host "" }
+                Write-Log ("    " + $trimmed)
+                $lastProgress = ""
+            }
         }
         while (-not $proc.StandardError.EndOfStream) {
             $line = $proc.StandardError.ReadLine()
-            if ($line) { Write-Log ("    " + $line.Trim()) -Color "Yellow" }
+            if ($line -and $line.Trim()) {
+                if ($script:lastProgressLine) { Write-Host "" }
+                Write-Log ("    " + $line.Trim()) -Color "Yellow"
+            }
         }
         [System.Windows.Forms.Application]::DoEvents()
         Start-Sleep -Milliseconds 50
     }
     # Drain remaining
     $rest = $proc.StandardOutput.ReadToEnd()
-    if ($rest) { $rest.Split("`n") | ForEach-Object { if ($_.Trim()) { Write-Log ("    " + $_.Trim()) } } }
+    if ($rest) {
+        $rest.Split("`n") | ForEach-Object {
+            $t = $_.Trim()
+            if ($t) {
+                $isProgress = ($t -match '\d+(\.\d+)?\s*%' -or $t -match '\[=+[\s=]*\]')
+                if (-not $isProgress) { Write-Log ("    " + $t) }
+            }
+        }
+    }
     $restErr = $proc.StandardError.ReadToEnd()
     if ($restErr) { $restErr.Split("`n") | ForEach-Object { if ($_.Trim()) { Write-Log ("    " + $_.Trim()) -Color "Yellow" } } }
+    if ($script:lastProgressLine) { Write-Host "" }
     Write-Log ("  Finished (exit $($proc.ExitCode))") -Color "Green"
 }
 
