@@ -922,7 +922,7 @@ $tabAtlas.Text = "Atlas"
 $tabAtlas.BackColor = $bgBlack
 $tabControl.Controls.Add($tabAtlas)
 
-# Main button (runs defaults)
+# Main button (runs defaults) â€” added last so it docks at the top
 $btnAtlasMain = New-Object System.Windows.Forms.Button
 $btnAtlasMain.Text = "Run Atlas Main Tweaks"
 $btnAtlasMain.Dock = "Top"
@@ -932,7 +932,6 @@ $btnAtlasMain.ForeColor = $textWhite
 $btnAtlasMain.FlatStyle = "Flat"
 $btnAtlasMain.FlatAppearance.BorderSize = 0
 $btnAtlasMain.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
-$tabAtlas.Controls.Add($btnAtlasMain)
 
 # Label for advanced section
 $lblAtlasAdv = New-Object System.Windows.Forms.Label
@@ -943,7 +942,6 @@ $lblAtlasAdv.ForeColor = $textWhite
 $lblAtlasAdv.BackColor = $bgBlack
 $lblAtlasAdv.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
 $lblAtlasAdv.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
-$tabAtlas.Controls.Add($lblAtlasAdv)
 
 # Advanced options list
 $atlasAdvList = New-Object System.Windows.Forms.CheckedListBox
@@ -967,7 +965,6 @@ $atlasAdvItems = @(
     'Enable Notifications'
 )
 $atlasAdvItems | ForEach-Object { [void]$atlasAdvList.Items.Add($_) }
-$tabAtlas.Controls.Add($atlasAdvList)
 
 # Run Advanced button
 $btnAtlasAdv = New-Object System.Windows.Forms.Button
@@ -979,7 +976,12 @@ $btnAtlasAdv.ForeColor = $textWhite
 $btnAtlasAdv.FlatStyle = "Flat"
 $btnAtlasAdv.FlatAppearance.BorderSize = 0
 $btnAtlasAdv.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+
+# Add in reverse dock order so button is at top
 $tabAtlas.Controls.Add($btnAtlasAdv)
+$tabAtlas.Controls.Add($atlasAdvList)
+$tabAtlas.Controls.Add($lblAtlasAdv)
+$tabAtlas.Controls.Add($btnAtlasMain)
 
 $atlasAdvDescriptions = @{
     'Disable Service Host Splitting' = 'Reduces svchost process count and RAM use. Excludes Xbox services. Low risk but less tested on aged installs.'
@@ -1333,9 +1335,36 @@ $powerActions = @{
 }
 $btnPower.Add_Click({ Invoke-Selected $powerList $powerActions })
 
-# Prevent header items from being checked
+# Style headers as bold labels with no checkbox
 function Protect-Headers {
     param([System.Windows.Forms.CheckedListBox]$List)
+    $List.DrawMode = [System.Windows.Forms.DrawMode]::OwnerDrawFixed
+    $List.ItemHeight = 32
+
+    $List.Add_DrawItem({
+        param($sender, $e)
+        if ($e.Index -lt 0) { return }
+        $item = $sender.Items[$e.Index].ToString()
+        $isHeader = $item.StartsWith("---")
+
+        $e.Graphics.FillRectangle((New-Object System.Drawing.SolidBrush($sender.BackColor)), $e.Bounds)
+
+        if ($isHeader) {
+            $text = $item -replace '---\s*', '' -replace '\s*---', ''
+            $font = New-Object System.Drawing.Font($sender.Font.FontFamily, $sender.Font.Size, [System.Drawing.FontStyle]::Bold)
+            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
+            $e.Graphics.DrawString($text, $font, $brush, ($e.Bounds.X + 8), ($e.Bounds.Y + 6))
+            $font.Dispose(); $brush.Dispose()
+        } else {
+            $checked = $sender.GetItemChecked($e.Index)
+            $checkRect = New-Object System.Drawing.Rectangle(($e.Bounds.X + 4), ($e.Bounds.Y + 6), 18, 18)
+            [System.Windows.Forms.ControlPaint]::DrawCheckBox($e.Graphics, $checkRect, $(if ($checked) { [System.Windows.Forms.ButtonState]::Checked } else { [System.Windows.Forms.ButtonState]::Normal }))
+            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
+            $e.Graphics.DrawString($item, $sender.Font, $brush, ($e.Bounds.X + 28), ($e.Bounds.Y + 6))
+            $brush.Dispose()
+        }
+    })
+
     $List.Add_ItemCheck({
         param($sender, $e)
         $item = $sender.Items[$e.Index].ToString()
