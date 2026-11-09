@@ -377,6 +377,7 @@ $maintList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $maintList.BorderStyle = "None"
 $maintList.ItemHeight = 32
 $maintItems = @(
+    'RECOMMENDED',
     'System File Checker (SFC /scannow)',
     'DISM Image Repair (RestoreHealth)',
     'Windows Component Store Cleanup',
@@ -432,10 +433,12 @@ $cleanList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $cleanList.BorderStyle = "None"
 $cleanList.ItemHeight = 32
 $cleanItems = @(
+    'RECOMMENDED',
     'Clean Temporary Files',
     'Empty Recycle Bin',
     'Clear Windows Update Download Cache',
     'Flush DNS Cache',
+    'OTHER',
     'Clear Thumbnail Cache',
     'Clear Prefetch Cache',
     'Run Disk Cleanup Utility',
@@ -501,6 +504,7 @@ $stdList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $stdList.BorderStyle = "None"
 $stdList.ItemHeight = 32
 $stdItems = @(
+    'RECOMMENDED',
     'Disable Telemetry',
     'Disable GameDVR',
     'Disable Fast Startup',
@@ -509,6 +513,7 @@ $stdItems = @(
     'Disable Delivery Optimization',
     'Enable End Task on Taskbar',
     'Disable Startup Delay',
+    'OTHER',
     'Disable Activity History',
     'Disable Location Tracking',
     'Disable WPBT',
@@ -630,10 +635,12 @@ $advList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $advList.BorderStyle = "None"
 $advList.ItemHeight = 32
 $advItems = @(
+    'RECOMMENDED',
     'Disable and Remove Windows AI',
     'Disable News and Interests / Widgets',
     'Restore Classic Right-Click Menu',
     'Disable Background Apps',
+    'OTHER',
     'Block Logitech Download Assistant',
     'Debloat Brave Browser',
     'Debloat Microsoft Edge',
@@ -1327,13 +1334,44 @@ $powerActions = @{
 }
 $btnPower.Add_Click({ Invoke-Selected $powerList $powerActions })
 
-# Prevent header items from being checked (dividers removed from lists)
+# Style headers as bold labels with no checkbox
 function Protect-Headers {
     param([System.Windows.Forms.CheckedListBox]$List)
-    $List.Add_ItemCheck({
+    $List.DrawMode = [System.Windows.Forms.DrawMode]::OwnerDrawFixed
+
+    $List.add_DrawItem({
         param($sender, $e)
+        if ($e.Index -lt 0) { return }
+        $g = $e.Graphics
+        $bounds = $e.Bounds
         $item = $sender.Items[$e.Index].ToString()
-        if ($item.StartsWith("---")) {
+        $isHeader = ($item -eq 'RECOMMENDED') -or ($item -eq 'OTHER')
+
+        $bg = New-Object System.Drawing.SolidBrush($sender.BackColor)
+        $g.FillRectangle($bg, $bounds)
+        $bg.Dispose()
+
+        if ($isHeader) {
+            $text = $item
+            $font = New-Object System.Drawing.Font($sender.Font, [System.Drawing.FontStyle]::Bold)
+            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
+            $g.DrawString($text, $font, $brush, ($bounds.X + 6), ($bounds.Y + 5))
+            $font.Dispose()
+            $brush.Dispose()
+        } else {
+            $state = [System.Windows.Forms.ButtonState]::Normal
+            if ($sender.GetItemChecked($e.Index)) { $state = [System.Windows.Forms.ButtonState]::Checked }
+            $checkBox = New-Object System.Drawing.Rectangle(($bounds.X + 4), ($bounds.Y + 7), 16, 16)
+            [System.Windows.Forms.ControlPaint]::DrawCheckBox($g, $checkBox, $state)
+            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
+            $g.DrawString($item, $sender.Font, $brush, ($bounds.X + 26), ($bounds.Y + 5))
+            $brush.Dispose()
+        }
+    })
+
+    $List.add_ItemCheck({
+        param($sender, $e)
+        if (($sender.Items[$e.Index].ToString() -eq 'RECOMMENDED') -or ($sender.Items[$e.Index].ToString() -eq 'OTHER')) {
             $e.NewValue = $e.CurrentValue
         }
     })
