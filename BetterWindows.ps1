@@ -13,12 +13,12 @@ if (-not $isAdmin) {
         if ($PSCommandPath) {
             # Running from a local file
             $arg = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
-            Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -ErrorAction Stop
+            Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -WindowStyle Hidden -ErrorAction Stop
         } else {
             # Running from irm | iex â€” re-download elevated
             $url = "https://raw.githubusercontent.com/my573ry/betterwindows/main/BetterWindows.ps1"
             $arg = "-NoProfile -ExecutionPolicy Bypass -Command `"irm '$url' | iex`""
-            Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -ErrorAction Stop
+            Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -WindowStyle Hidden -ErrorAction Stop
         }
     }
     catch {
@@ -30,6 +30,16 @@ if (-not $isAdmin) {
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+
+# Hide the PowerShell console window so it doesn't appear when the GUI closes
+try {
+    Add-Type -Name Window -Namespace Console -MemberDefinition '
+        [DllImport("Kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+        [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+    '
+    $hwnd = [Console.Window]::GetConsoleWindow()
+    if ($hwnd -ne [IntPtr]::Zero) { [Console.Window]::ShowWindow($hwnd, 0) | Out-Null }
+} catch {}
 
 # ---------- Helpers ----------
 $script:lastProgressLine = $false
@@ -316,7 +326,6 @@ function Invoke-Selected {
 
     $progressBar.Value = 0
     $progressBar.Maximum = $selected.Count
-    $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
     Write-Host ""
     Write-Host "===========================================" -ForegroundColor Cyan
     Write-Host "  BetterWindows - Running Tasks" -ForegroundColor Cyan
@@ -352,7 +361,6 @@ function Invoke-Selected {
     Write-Host "  All selected items finished" -ForegroundColor Green
     Write-Host "===========================================" -ForegroundColor Green
     Write-Log "===== All selected items finished =====" -Color "Green"
-    $form.Cursor = [System.Windows.Forms.Cursors]::Default
     [System.Windows.Forms.MessageBox]::Show("Selected items completed.`nSome changes may require a reboot.", "Done") | Out-Null
 }
 
@@ -925,9 +933,7 @@ $powerList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
 $powerList.BorderStyle = "None"
 $powerList.ItemHeight = 32
 $powerItems = @(
-    '--- RECOMMENDED ---',
     'Import and Enable Atlas Power Scheme',
-    '--- OTHER ---',
     'Remove Atlas Power Scheme'
 )
 $powerItems | ForEach-Object { [void]$powerList.Items.Add($_) }
