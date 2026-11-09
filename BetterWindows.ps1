@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Mysterys PC Optimiser - Clean Modern GUI
+    BetterWindows - Clean Modern GUI
 .DESCRIPTION
     Select tweaks and run them with progress. Self-elevating.
 #>
@@ -148,16 +148,16 @@ function Add-ListWithTooltips {
     })
 }
 
-# ---------- Colors (Black + Red accents, white text) ----------
+# ---------- Colors (Black + Windows 11 Blue accents, white text) ----------
 $bgBlack   = [System.Drawing.Color]::FromArgb(0, 0, 0)
 $bgPanel   = [System.Drawing.Color]::FromArgb(18, 18, 18)
-$accentRed = [System.Drawing.Color]::FromArgb(220, 38, 38)
+$accentBlue = [System.Drawing.Color]::FromArgb(0, 120, 212)   # Windows 11 blue
 $textWhite = [System.Drawing.Color]::FromArgb(255, 255, 255)
 $textGray  = [System.Drawing.Color]::FromArgb(180, 180, 180)
 
 # ---------- Main Form ----------
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Mysterys PC Optimiser"
+$form.Text = "BetterWindows"
 $form.Size = New-Object System.Drawing.Size(1100, 800)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedSingle"
@@ -179,7 +179,7 @@ $form.Controls.Add($table)
 
 # Header
 $header = New-Object System.Windows.Forms.Label
-$header.Text = "Mysterys PC Optimiser"
+$header.Text = "BetterWindows"
 $header.Font = New-Object System.Drawing.Font("Segoe UI", 22, [System.Drawing.FontStyle]::Bold)
 $header.ForeColor = $textWhite
 $header.Dock = "Fill"
@@ -258,7 +258,7 @@ function Invoke-Selected {
     $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
     Write-Host ""
     Write-Host "===========================================" -ForegroundColor Cyan
-    Write-Host "  Mysterys PC Optimiser - Running Tasks" -ForegroundColor Cyan
+    Write-Host "  BetterWindows - Running Tasks" -ForegroundColor Cyan
     Write-Host "===========================================" -ForegroundColor Cyan
     Write-Log ("===== Starting " + $selected.Count + " selected item(s) =====") -Color "Cyan"
 
@@ -322,7 +322,7 @@ $btnMaint = New-Object System.Windows.Forms.Button
 $btnMaint.Text = "Run Selected"
 $btnMaint.Dock = "Bottom"
 $btnMaint.Height = 54
-$btnMaint.BackColor = $accentRed
+$btnMaint.BackColor = $accentBlue
 $btnMaint.ForeColor = $textWhite
 $btnMaint.FlatStyle = "Flat"
 $btnMaint.FlatAppearance.BorderSize = 0
@@ -381,7 +381,7 @@ $btnClean = New-Object System.Windows.Forms.Button
 $btnClean.Text = "Run Selected"
 $btnClean.Dock = "Bottom"
 $btnClean.Height = 54
-$btnClean.BackColor = $accentRed
+$btnClean.BackColor = $accentBlue
 $btnClean.ForeColor = $textWhite
 $btnClean.FlatStyle = "Flat"
 $btnClean.FlatAppearance.BorderSize = 0
@@ -455,7 +455,7 @@ $btnStd = New-Object System.Windows.Forms.Button
 $btnStd.Text = "Run Selected"
 $btnStd.Dock = "Bottom"
 $btnStd.Height = 54
-$btnStd.BackColor = $accentRed
+$btnStd.BackColor = $accentBlue
 $btnStd.ForeColor = $textWhite
 $btnStd.FlatStyle = "Flat"
 $btnStd.FlatAppearance.BorderSize = 0
@@ -587,7 +587,7 @@ $btnAdv = New-Object System.Windows.Forms.Button
 $btnAdv.Text = "Run Selected"
 $btnAdv.Dock = "Bottom"
 $btnAdv.Height = 54
-$btnAdv.BackColor = $accentRed
+$btnAdv.BackColor = $accentBlue
 $btnAdv.ForeColor = $textWhite
 $btnAdv.FlatStyle = "Flat"
 $btnAdv.FlatAppearance.BorderSize = 0
@@ -867,7 +867,7 @@ $btnPower = New-Object System.Windows.Forms.Button
 $btnPower.Text = "Run Selected"
 $btnPower.Dock = "Bottom"
 $btnPower.Height = 54
-$btnPower.BackColor = $accentRed
+$btnPower.BackColor = $accentBlue
 $btnPower.ForeColor = $textWhite
 $btnPower.FlatStyle = "Flat"
 $btnPower.FlatAppearance.BorderSize = 0
@@ -947,7 +947,7 @@ if ($createRestore) {
     Set-Status "Creating System Restore Point..."
     try {
         Enable-ComputerRestore -Drive $env:SystemDrive -ErrorAction SilentlyContinue
-        Checkpoint-Computer -Description "Mystery Optimiser - Before Changes" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop
+        Checkpoint-Computer -Description "BetterWindows - Before Changes" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop
         Write-Log "System Restore Point created successfully."
         [System.Windows.Forms.MessageBox]::Show("System Restore Point created.", "Success", "OK", "Information") | Out-Null
     }
@@ -957,6 +957,6 @@ if ($createRestore) {
     }
 }
 
-Write-Log "Mysterys PC Optimiser ready."
+Write-Log "BetterWindows ready."
 Write-Log "Hover any option for a description. Select items and click Run Selected."
 [void]$form.ShowDialog()
