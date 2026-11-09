@@ -10,8 +10,16 @@
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     try {
-        $arg = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
-        Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -ErrorAction Stop
+        if ($PSCommandPath) {
+            # Running from a local file
+            $arg = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
+            Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -ErrorAction Stop
+        } else {
+            # Running from irm | iex â€” re-download elevated
+            $url = "https://raw.githubusercontent.com/my573ry/betterwindows/main/BetterWindows.ps1"
+            $arg = "-NoProfile -ExecutionPolicy Bypass -Command `"irm '$url' | iex`""
+            Start-Process powershell.exe -ArgumentList $arg -Verb RunAs -ErrorAction Stop
+        }
     }
     catch {
         Add-Type -AssemblyName System.Windows.Forms
