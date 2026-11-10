@@ -219,6 +219,7 @@ function Add-ListWithTooltips {
 # ---------- Colors (Black + Windows 11 Blue accents, white text) ----------
 $bgBlack   = [System.Drawing.Color]::FromArgb(0, 0, 0)
 $bgPanel   = [System.Drawing.Color]::FromArgb(18, 18, 18)
+$bgHeader  = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $accentBlue = [System.Drawing.Color]::FromArgb(0, 120, 212)   # Windows 11 blue
 $textWhite = [System.Drawing.Color]::FromArgb(255, 255, 255)
 $textGray  = [System.Drawing.Color]::FromArgb(180, 180, 180)
@@ -423,26 +424,55 @@ $tabClean.Text = "Windows Cleanup"
 $tabClean.BackColor = $bgBlack
 $tabControl.Controls.Add($tabClean)
 
-$cleanList = New-Object System.Windows.Forms.CheckedListBox
-$cleanList.Dock = "Fill"
-$cleanList.CheckOnClick = $true
-$cleanList.BackColor = $bgPanel
-$cleanList.ForeColor = $textWhite
-$cleanList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
-$cleanList.BorderStyle = "None"
-$cleanList.ItemHeight = 32
-$cleanItems = @(
-    'Clean Temporary Files',
-    'Empty Recycle Bin',
-    'Clear Windows Update Download Cache',
-    'Flush DNS Cache',
-    'Clear Thumbnail Cache',
-    'Clear Prefetch Cache',
-    'Run Disk Cleanup Utility',
-    'Clear Delivery Optimization Cache'
-)
-$cleanItems | ForEach-Object { [void]$cleanList.Items.Add($_) }
-$tabClean.Controls.Add($cleanList)
+$cleanPanel = New-Object System.Windows.Forms.Panel
+$cleanPanel.Dock = "Fill"
+$cleanPanel.BackColor = $bgBlack
+$tabClean.Controls.Add($cleanPanel)
+
+$lblCleanRec = New-Object System.Windows.Forms.Label
+$lblCleanRec.Text = "RECOMMENDED"
+$lblCleanRec.Dock = "Top"
+$lblCleanRec.Height = 28
+$lblCleanRec.ForeColor = $textWhite
+$lblCleanRec.BackColor = $bgHeader
+$lblCleanRec.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblCleanRec.Padding = New-Object System.Windows.Forms.Padding(8, 4, 0, 2)
+
+$cleanListRec = New-Object System.Windows.Forms.CheckedListBox
+$cleanListRec.Dock = "Top"
+$cleanListRec.IntegralHeight = $false
+$cleanListRec.CheckOnClick = $true
+$cleanListRec.BackColor = $bgPanel
+$cleanListRec.ForeColor = $textWhite
+$cleanListRec.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
+$cleanListRec.BorderStyle = "None"
+$cleanListRec.ItemHeight = 32
+@('Clean Temporary Files','Empty Recycle Bin','Clear Windows Update Download Cache','Flush DNS Cache') | ForEach-Object { [void]$cleanListRec.Items.Add($_) }
+$cleanListRec.Height = ($cleanListRec.Items.Count * $cleanListRec.ItemHeight)
+
+$lblCleanOth = New-Object System.Windows.Forms.Label
+$lblCleanOth.Text = "OTHER"
+$lblCleanOth.Dock = "Top"
+$lblCleanOth.Height = 28
+$lblCleanOth.ForeColor = $textWhite
+$lblCleanOth.BackColor = $bgHeader
+$lblCleanOth.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblCleanOth.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
+
+$cleanListOth = New-Object System.Windows.Forms.CheckedListBox
+$cleanListOth.Dock = "Fill"
+$cleanListOth.CheckOnClick = $true
+$cleanListOth.BackColor = $bgPanel
+$cleanListOth.ForeColor = $textWhite
+$cleanListOth.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
+$cleanListOth.BorderStyle = "None"
+$cleanListOth.ItemHeight = 32
+@('Clear Thumbnail Cache','Clear Prefetch Cache','Run Disk Cleanup Utility','Clear Delivery Optimization Cache') | ForEach-Object { [void]$cleanListOth.Items.Add($_) }
+
+$cleanPanel.Controls.Add($cleanListOth)
+$cleanPanel.Controls.Add($lblCleanOth)
+$cleanPanel.Controls.Add($cleanListRec)
+$cleanPanel.Controls.Add($lblCleanRec)
 
 $btnClean = New-Object System.Windows.Forms.Button
 $btnClean.Text = "Run Selected"
@@ -465,7 +495,8 @@ $cleanDescriptions = @{
     'Clear Delivery Optimization Cache' = 'Deletes Delivery Optimization download cache (peer-to-peer update files).'
     'Flush DNS Cache' = 'Clears the local DNS resolver cache (ipconfig /flushdns).'
 }
-Add-ListWithTooltips $cleanList $cleanDescriptions
+Add-ListWithTooltips $cleanListRec $cleanDescriptions
+Add-ListWithTooltips $cleanListOth $cleanDescriptions
 
 $cleanActions = @{
     'Clean Temporary Files' = {
@@ -484,7 +515,10 @@ $cleanActions = @{
     'Clear Delivery Optimization Cache' = { Remove-Item "C:\Windows\SoftwareDistribution\DeliveryOptimization\*" -Recurse -Force -ErrorAction SilentlyContinue }
     'Flush DNS Cache' = { ipconfig /flushdns | Out-Null }
 }
-$btnClean.Add_Click({ Invoke-Selected $cleanList $cleanActions })
+$btnClean.Add_Click({
+    Invoke-Selected $cleanListRec $cleanActions
+    Invoke-Selected $cleanListOth $cleanActions
+})
 
 # ========== TAB 3: Standard Tweaks ==========
 $tabStd = New-Object System.Windows.Forms.TabPage
@@ -492,31 +526,55 @@ $tabStd.Text = "Standard Tweaks"
 $tabStd.BackColor = $bgBlack
 $tabControl.Controls.Add($tabStd)
 
-$stdList = New-Object System.Windows.Forms.CheckedListBox
-$stdList.Dock = "Fill"
-$stdList.CheckOnClick = $true
-$stdList.BackColor = $bgPanel
-$stdList.ForeColor = $textWhite
-$stdList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
-$stdList.BorderStyle = "None"
-$stdList.ItemHeight = 32
-$stdItems = @(
-    'Disable Telemetry',
-    'Disable GameDVR',
-    'Disable Fast Startup',
-    'Disable Consumer Features',
-    'Disable Windows Tips and Suggestions',
-    'Disable Delivery Optimization',
-    'Enable End Task on Taskbar',
-    'Disable Startup Delay',
-    'Disable Activity History',
-    'Disable Location Tracking',
-    'Disable WPBT',
-    'Remove Temporary Files',
-    'Set Services to Manual'
-)
-$stdItems | ForEach-Object { [void]$stdList.Items.Add($_) }
-$tabStd.Controls.Add($stdList)
+$stdPanel = New-Object System.Windows.Forms.Panel
+$stdPanel.Dock = "Fill"
+$stdPanel.BackColor = $bgBlack
+$tabStd.Controls.Add($stdPanel)
+
+$lblStdRec = New-Object System.Windows.Forms.Label
+$lblStdRec.Text = "RECOMMENDED"
+$lblStdRec.Dock = "Top"
+$lblStdRec.Height = 28
+$lblStdRec.ForeColor = $textWhite
+$lblStdRec.BackColor = $bgHeader
+$lblStdRec.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblStdRec.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
+
+$stdListRec = New-Object System.Windows.Forms.CheckedListBox
+$stdListRec.Dock = "Top"
+$stdListRec.IntegralHeight = $false
+$stdListRec.CheckOnClick = $true
+$stdListRec.BackColor = $bgPanel
+$stdListRec.ForeColor = $textWhite
+$stdListRec.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
+$stdListRec.BorderStyle = "None"
+$stdListRec.ItemHeight = 32
+@('Disable Telemetry','Disable GameDVR','Disable Fast Startup','Disable Consumer Features','Disable Windows Tips and Suggestions','Disable Delivery Optimization','Enable End Task on Taskbar','Disable Startup Delay') | ForEach-Object { [void]$stdListRec.Items.Add($_) }
+$stdListRec.Height = ($stdListRec.Items.Count * $stdListRec.ItemHeight)
+
+$lblStdOth = New-Object System.Windows.Forms.Label
+$lblStdOth.Text = "OTHER"
+$lblStdOth.Dock = "Top"
+$lblStdOth.Height = 28
+$lblStdOth.ForeColor = $textWhite
+$lblStdOth.BackColor = $bgHeader
+$lblStdOth.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblStdOth.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
+
+$stdListOth = New-Object System.Windows.Forms.CheckedListBox
+$stdListOth.Dock = "Fill"
+$stdListOth.CheckOnClick = $true
+$stdListOth.BackColor = $bgPanel
+$stdListOth.ForeColor = $textWhite
+$stdListOth.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
+$stdListOth.BorderStyle = "None"
+$stdListOth.ItemHeight = 32
+@('Disable Activity History','Disable Location Tracking','Disable WPBT','Remove Temporary Files','Set Services to Manual') | ForEach-Object { [void]$stdListOth.Items.Add($_) }
+
+$stdPanel.Controls.Add($stdListOth)
+$stdPanel.Controls.Add($lblStdOth)
+$stdPanel.Controls.Add($stdListRec)
+$stdPanel.Controls.Add($lblStdRec)
 
 $btnStd = New-Object System.Windows.Forms.Button
 $btnStd.Text = "Run Selected"
@@ -544,7 +602,8 @@ $stdDescriptions = @{
     'Remove Temporary Files' = 'Deletes temporary files from user and Windows Temp folders.'
     'Set Services to Manual' = 'Sets several non-essential services to Manual startup to reduce background load.'
 }
-Add-ListWithTooltips $stdList $stdDescriptions
+Add-ListWithTooltips $stdListRec $stdDescriptions
+Add-ListWithTooltips $stdListOth $stdDescriptions
 
 $stdActions = @{
     'Disable Activity History' = {
@@ -613,7 +672,10 @@ $stdActions = @{
         Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableSoftLanding" -Value 1 -Type DWord -ErrorAction SilentlyContinue
     }
 }
-$btnStd.Add_Click({ Invoke-Selected $stdList $stdActions })
+$btnStd.Add_Click({
+    Invoke-Selected $stdListRec $stdActions
+    Invoke-Selected $stdListOth $stdActions
+})
 
 # ========== TAB 4: Advanced Tweaks ==========
 $tabAdv = New-Object System.Windows.Forms.TabPage
@@ -621,34 +683,55 @@ $tabAdv.Text = "Advanced Tweaks"
 $tabAdv.BackColor = $bgBlack
 $tabControl.Controls.Add($tabAdv)
 
-$advList = New-Object System.Windows.Forms.CheckedListBox
-$advList.Dock = "Fill"
-$advList.CheckOnClick = $true
-$advList.BackColor = $bgPanel
-$advList.ForeColor = $textWhite
-$advList.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
-$advList.BorderStyle = "None"
-$advList.ItemHeight = 32
-$advItems = @(
-    'Disable and Remove Windows AI',
-    'Disable News and Interests / Widgets',
-    'Restore Classic Right-Click Menu',
-    'Disable Background Apps',
-    'Block Logitech Download Assistant',
-    'Debloat Brave Browser',
-    'Debloat Microsoft Edge',
-    'Disable File Explorer Home and Gallery',
-    'Disable Hibernation',
-    'Disable Razer Software Auto-Install',
-    'Disable Storage Sense',
-    'Disable System Tray Notifications and Calendar',
-    'Enable Hibernation',
-    'Remove Microsoft Edge',
-    'Remove Microsoft OneDrive',
-    'Set Visual Effects to Best Performance'
-)
-$advItems | ForEach-Object { [void]$advList.Items.Add($_) }
-$tabAdv.Controls.Add($advList)
+$advPanel = New-Object System.Windows.Forms.Panel
+$advPanel.Dock = "Fill"
+$advPanel.BackColor = $bgBlack
+$tabAdv.Controls.Add($advPanel)
+
+$lblAdvRec = New-Object System.Windows.Forms.Label
+$lblAdvRec.Text = "RECOMMENDED"
+$lblAdvRec.Dock = "Top"
+$lblAdvRec.Height = 28
+$lblAdvRec.ForeColor = $textWhite
+$lblAdvRec.BackColor = $bgHeader
+$lblAdvRec.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblAdvRec.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
+
+$advListRec = New-Object System.Windows.Forms.CheckedListBox
+$advListRec.Dock = "Top"
+$advListRec.IntegralHeight = $false
+$advListRec.CheckOnClick = $true
+$advListRec.BackColor = $bgPanel
+$advListRec.ForeColor = $textWhite
+$advListRec.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
+$advListRec.BorderStyle = "None"
+$advListRec.ItemHeight = 32
+@('Disable and Remove Windows AI','Disable News and Interests / Widgets','Restore Classic Right-Click Menu','Disable Background Apps') | ForEach-Object { [void]$advListRec.Items.Add($_) }
+$advListRec.Height = ($advListRec.Items.Count * $advListRec.ItemHeight)
+
+$lblAdvOth = New-Object System.Windows.Forms.Label
+$lblAdvOth.Text = "OTHER"
+$lblAdvOth.Dock = "Top"
+$lblAdvOth.Height = 28
+$lblAdvOth.ForeColor = $textWhite
+$lblAdvOth.BackColor = $bgHeader
+$lblAdvOth.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblAdvOth.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
+
+$advListOth = New-Object System.Windows.Forms.CheckedListBox
+$advListOth.Dock = "Fill"
+$advListOth.CheckOnClick = $true
+$advListOth.BackColor = $bgPanel
+$advListOth.ForeColor = $textWhite
+$advListOth.Font = New-Object System.Drawing.Font("Segoe UI", 11.5)
+$advListOth.BorderStyle = "None"
+$advListOth.ItemHeight = 32
+@('Block Logitech Download Assistant','Debloat Brave Browser','Debloat Microsoft Edge','Disable File Explorer Home and Gallery','Disable Hibernation','Disable Razer Software Auto-Install','Disable Storage Sense','Disable System Tray Notifications and Calendar','Enable Hibernation','Remove Microsoft Edge','Remove Microsoft OneDrive','Set Visual Effects to Best Performance') | ForEach-Object { [void]$advListOth.Items.Add($_) }
+
+$advPanel.Controls.Add($advListOth)
+$advPanel.Controls.Add($lblAdvOth)
+$advPanel.Controls.Add($advListRec)
+$advPanel.Controls.Add($lblAdvRec)
 
 $btnAdv = New-Object System.Windows.Forms.Button
 $btnAdv.Text = "Run Selected"
@@ -679,7 +762,8 @@ $advDescriptions = @{
     'Restore Classic Right-Click Menu' = 'Restores the full classic right-click context menu in Windows 11.'
     'Set Visual Effects to Best Performance' = 'Disables most visual effects for lower resource use.'
 }
-Add-ListWithTooltips $advList $advDescriptions
+Add-ListWithTooltips $advListRec $advDescriptions
+Add-ListWithTooltips $advListOth $advDescriptions
 
 $advActions = @{
     'Enable Adobe URL Block List' = {
@@ -905,7 +989,8 @@ $advActions = @{
 $btnAdv.Add_Click({
     $msg = "Advanced Tweaks make deeper system changes.`nCreate a restore point first if you have not already.`n`nContinue?"
     if (-not (Confirm-Yes $msg)) { return }
-    Invoke-Selected $advList $advActions
+    Invoke-Selected $advListRec $advActions
+    Invoke-Selected $advListOth $advActions
 })
 
 
@@ -932,7 +1017,7 @@ $lblAtlasAdv.Text = "Advanced Atlas Options (optional)"
 $lblAtlasAdv.Dock = "Top"
 $lblAtlasAdv.Height = 28
 $lblAtlasAdv.ForeColor = $textWhite
-$lblAtlasAdv.BackColor = $bgBlack
+$lblAtlasAdv.BackColor = $bgHeader
 $lblAtlasAdv.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
 $lblAtlasAdv.Padding = New-Object System.Windows.Forms.Padding(8, 6, 0, 0)
 
@@ -946,15 +1031,11 @@ $atlasAdvList.Font = New-Object System.Drawing.Font("Segoe UI", 11)
 $atlasAdvList.BorderStyle = "None"
 $atlasAdvList.ItemHeight = 28
 $atlasAdvItems = @(
-    'Disable Service Host Splitting',
     'Run NGEN (optimize PowerShell)',
     'Disable Automatic Maintenance',
     'Rebuild Performance Counters',
     'Make MeasureSleep Admin',
-    'Disable Devices (PnP / network bindings)',
-    'Apply Power Tweaks (Fast Startup off)',
-    'Disable Mitigations',
-    'Enable Notifications'
+    'Disable Mitigations'
 )
 $atlasAdvItems | ForEach-Object { [void]$atlasAdvList.Items.Add($_) }
 
@@ -1118,6 +1199,24 @@ $atlasMainActions = @{
         New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" -Force | Out-Null
         Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" -Name "EnableMulticast" -Value 0 -Type DWord
     }
+    'Disable Devices (PnP / network bindings)' = {
+        Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient,ms_server,ms_lldp,ms_lltdio,ms_rspndr -ErrorAction SilentlyContinue
+    }
+    'Apply Power Tweaks (Fast Startup off)' = {
+        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Force | Out-Null
+        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type DWord
+    }
+    'Disable Service Host Splitting' = {
+        Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | Where-Object { $_.Name -notmatch 'Xbl|Xbox' } | ForEach-Object {
+            if ($null -ne (Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue).Start) {
+                Set-ItemProperty -Path $_.PSPath -Name "SvcHostSplitDisable" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    'Enable Notifications' = {
+        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Force | Out-Null
+        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "ToastEnabled" -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    }
     'Block Anonymous SAM Enumeration' = {
         New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Force | Out-Null
         Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RestrictAnonymousSAM" -Value 1 -Type DWord
@@ -1134,13 +1233,6 @@ $atlasMainActions = @{
 
 # Advanced actions
 $atlasAdvActions = @{
-    'Disable Service Host Splitting' = {
-        Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | Where-Object { $_.Name -notmatch 'Xbl|Xbox' } | ForEach-Object {
-            if ($null -ne (Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue).Start) {
-                Set-ItemProperty -Path $_.PSPath -Name "SvcHostSplitDisable" -Value 1 -Type DWord -ErrorAction SilentlyContinue
-            }
-        }
-    }
     'Run NGEN (optimize PowerShell)' = {
         Write-Log "  Running NGEN (this may take a minute)..."
         & "$env:SystemRoot\Microsoft.NET\Framework64\v4.0.30319\ngen.exe" update 2>&1 | Out-Null
@@ -1158,20 +1250,9 @@ $atlasAdvActions = @{
         # Placeholder - minor internal tweak
         Write-Log "  MeasureSleep admin flag applied (minor)"
     }
-    'Disable Devices (PnP / network bindings)' = {
-        Disable-NetAdapterBinding -Name "*" -ComponentID ms_msclient,ms_server,ms_lldp,ms_lltdio,ms_rspndr -ErrorAction SilentlyContinue
-    }
-    'Apply Power Tweaks (Fast Startup off)' = {
-        New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Force | Out-Null
-        Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type DWord
-    }
     'Disable Mitigations' = {
         Write-Log "  Disabling mitigations (security trade-off)"
         Set-ProcessMitigation -System -Disable DEP,SEHOP,ForceRelocateImages,BottomUp,HighEntropy,StrictHandle,DisableWin32kSystemCalls,AuditSystemCall,DisableNonSystemFonts,AuditFont,BlockDynamicCode,DisableExtensionPoints -ErrorAction SilentlyContinue
-    }
-    'Enable Notifications' = {
-        New-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Force | Out-Null
-        Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "ToastEnabled" -Value 1 -Type DWord -ErrorAction SilentlyContinue
     }
 }
 
@@ -1327,22 +1408,49 @@ $powerActions = @{
 }
 $btnPower.Add_Click({ Invoke-Selected $powerList $powerActions })
 
-# Prevent header items from being checked (dividers removed from lists)
+# Style headers as bold labels with no checkbox
 function Protect-Headers {
     param([System.Windows.Forms.CheckedListBox]$List)
-    $List.Add_ItemCheck({
+    $List.DrawMode = [System.Windows.Forms.DrawMode]::OwnerDrawFixed
+
+    $List.add_DrawItem({
         param($sender, $e)
+        if ($e.Index -lt 0) { return }
+        $g = $e.Graphics
+        $bounds = $e.Bounds
         $item = $sender.Items[$e.Index].ToString()
-        if ($item.StartsWith("---")) {
+        $isHeader = ($item -eq 'RECOMMENDED') -or ($item -eq 'OTHER')
+
+        $bg = New-Object System.Drawing.SolidBrush($sender.BackColor)
+        $g.FillRectangle($bg, $bounds)
+        $bg.Dispose()
+
+        if ($isHeader) {
+            $text = $item
+            $font = New-Object System.Drawing.Font($sender.Font, [System.Drawing.FontStyle]::Bold)
+            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
+            $g.DrawString($text, $font, $brush, ($bounds.X + 6), ($bounds.Y + 5))
+            $font.Dispose()
+            $brush.Dispose()
+        } else {
+            $state = [System.Windows.Forms.ButtonState]::Normal
+            if ($sender.GetItemChecked($e.Index)) { $state = [System.Windows.Forms.ButtonState]::Checked }
+            $checkBox = New-Object System.Drawing.Rectangle(($bounds.X + 4), ($bounds.Y + 7), 16, 16)
+            [System.Windows.Forms.ControlPaint]::DrawCheckBox($g, $checkBox, $state)
+            $brush = New-Object System.Drawing.SolidBrush($sender.ForeColor)
+            $g.DrawString($item, $sender.Font, $brush, ($bounds.X + 26), ($bounds.Y + 5))
+            $brush.Dispose()
+        }
+    })
+
+    $List.add_ItemCheck({
+        param($sender, $e)
+        if (($sender.Items[$e.Index].ToString() -eq 'RECOMMENDED') -or ($sender.Items[$e.Index].ToString() -eq 'OTHER')) {
             $e.NewValue = $e.CurrentValue
         }
     })
 }
 
-Protect-Headers $maintList
-Protect-Headers $cleanList
-Protect-Headers $stdList
-Protect-Headers $advList
 Protect-Headers $powerList
 Protect-Headers $atlasAdvList
 
